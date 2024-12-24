@@ -16,7 +16,7 @@
 ## Установка проекта  
 
 1. Клонируйте проект с GitHub:
-git clone https://github.com/EdwardXD1/-Python
+git clone https://github.com/EdwardXD1/Dash_app2
 
 2. Создайте виртуальное окружение (если используется):  
 python -m venv venv
