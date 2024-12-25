@@ -19,7 +19,7 @@
 git clone https://github.com/EdwardXD1/Dash_app
 
 2. Создайте виртуальное окружение (если используется):  
-python -m venv venv
+python -m venv venv #
 source venv/bin/activate  # Для macOS/Linux
 venv\Scripts\activate  # Для Windows
 
