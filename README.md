@@ -42,6 +42,15 @@ pip install -r requirements.txt
 - Генерация данных в отдельном процессе.
 - Использование очереди для передачи данных между процессами.
 
+## Работа проекта
+
+![image](https://github.com/user-attachments/assets/cb9d1275-ed25-48de-ba1a-a351019b203b)
+
+![image](https://github.com/user-attachments/assets/4a2f1fb9-5282-4898-9f2b-b05ec642edf9)
+
+![image](https://github.com/user-attachments/assets/e73cdc20-60c7-40f1-9ec8-38aaa1d8f0bd)
+
+
 ## Структура проекта  
 
 - main.py - Главный файл запуска
