@@ -3,17 +3,44 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 import asyncio
+import random
+
+
+class CurrencyDataGenerator:
+    """Класс для генерации данных о курсах валют."""
+
+    def __init__(self):
+        self.currencies = ['USD', 'EUR', 'GBP', 'JPY']
+
+    async def generate_data(self):
+        """Генерирует случайные курсы валют."""
+        await asyncio.sleep(1)
+        rates = np.random.uniform(70, 150, size=len(self.currencies))  # Генерация случайных курсов
+        return pd.DataFrame({
+            'Currency': self.currencies,
+            'Rate': rates,
+            'Change': np.random.uniform(-5, 5, size=len(self.currencies))  # Изменение курса
+        })
+
+
+def create_pie_chart(data):
+    """Создает круговую диаграмму на основе данных о курсах валют."""
+    return px.pie(data, values='Rate', names='Currency', title='Currency Rate Distribution')
+
+
+def create_line_chart(data):
+    """Создает линейный график на основе данных о курсах валют."""
+    return px.line(data, x='Currency', y='Rate', title='Currency Rates Over Time')
+
+
+def create_bar_chart(data):
+    """Создает столбчатую диаграмму на основе данных о курсах валют."""
+    return px.bar(data, x='Currency', y='Change', title='Currency Rate Changes')
+
 
 app = Dash(__name__)
+data_generator = CurrencyDataGenerator()
 
-async def generate_data():
-    await asyncio.sleep(1)
-    return pd.DataFrame({
-        'Category': ['Food', 'Transport', 'Entertainment', 'Utilities'],
-        'Income': (2000, 1750, 4000, 3500),
-        'Expenses': np.random.randint(200, 1000, size=4),
-        'Purchases': np.random.randint(1, 20, size=4)
-    })
 
 @app.callback(
     [Output('pie-chart', 'figure'),
@@ -21,16 +48,16 @@ async def generate_data():
      Output('bar-chart', 'figure')],
     [Input('interval-component', 'n_intervals')]
 )
-def update_graph(n):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    data = loop.run_until_complete(generate_data())
+async def update_graph(n):
+    """Обновляет графики при каждом интервале."""
+    data = await data_generator.generate_data()
 
-    pie_fig = px.pie(data, values='Income', names='Category', title='Income Distribution by Category')
-    line_fig = px.line(data, x=data['Category'], y=data['Expenses'], title='Monthly Expenses')
-    bar_fig = px.bar(data, x='Category', y='Purchases', title='Number of Purchases by Category')
+    pie_fig = create_pie_chart(data)
+    line_fig = create_line_chart(data)
+    bar_fig = create_bar_chart(data)
 
     return pie_fig, line_fig, bar_fig
+
 
 app.layout = html.Div([
     dcc.Graph(id='pie-chart'),

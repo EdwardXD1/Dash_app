@@ -7,40 +7,55 @@ import asyncio
 from multiprocessing import Process, Queue
 import threading
 
+
+class CurrencyDataGenerator:
+    """Класс для генерации данных о курсах валют и их изменениях."""
+
+    def __init__(self):
+        self.currencies = ['USD', 'EUR', 'GBP', 'JPY']
+
+    def generate_data(self):
+        """Генерирует случайные курсы валют и их изменения."""
+        rates = np.random.uniform(70, 150, size=len(self.currencies))
+        changes = np.random.uniform(-5, 5, size=len(self.currencies))
+        return pd.DataFrame({
+            'Currency': self.currencies,
+            'Rate': rates,
+            'Change': changes
+        })
+
+
+class AsyncDataGenerator:
+    """Асинхронный генератор данных."""
+
+    async def generate_data(self):
+        """Асинхронно генерирует данные о курсах валют."""
+        await asyncio.sleep(1)
+        generator = CurrencyDataGenerator()
+        return generator.generate_data()
+
+
 app = Dash(__name__)
 data_queue = Queue()
-data = pd.DataFrame(columns=['Category', 'Income', 'Expenses', 'Purchases'])
+data_generator = CurrencyDataGenerator()
+async_data_generator = AsyncDataGenerator()
+
 
 def generate_data_thread():
-    global data
+    """Функция для генерации данных в отдельном потоке."""
     while True:
         time.sleep(2)
-        data = pd.DataFrame({
-            'Category': ['Food', 'Transport', 'Entertainment', 'Utilities'],
-            'Income': (1000, 5000, 2750, 4500),
-            'Expenses': np.random.randint(200, 1000, size=4),
-            'Purchases': np.random.randint(1, 20, size=4)
-        })
+        data = data_generator.generate_data()
+        data_queue.put(data)
+
 
 def generate_data_process(queue):
+    """Функция для генерации данных в отдельном процессе."""
     while True:
         time.sleep(2)
-        new_data = pd.DataFrame({
-            'Category': ['Food', 'Transport', 'Entertainment', 'Utilities'],
-            'Income': (4500, 1500, 4750, 2150),
-            'Expenses': np.random.randint(200, 1000, size=4),
-            'Purchases': np.random.randint(1, 20, size=4)
-        })
+        new_data = data_generator.generate_data()
         queue.put(new_data)
 
-async def generate_data_async():
-    await asyncio.sleep(1)
-    return pd.DataFrame({
-        'Category': ['Food', 'Transport', 'Entertainment', 'Utilities'],
-        'Income': (2000, 1750, 4000, 3500),
-        'Expenses': np.random.randint(200, 1000, size=4),
-        'Purchases': np.random.randint(1, 20, size=4)
-    })
 
 @app.callback(
     [Output('pie-chart', 'figure'),
@@ -50,22 +65,24 @@ async def generate_data_async():
      Input('input-method', 'value')]
 )
 def update_graph(n, method):
-    global data
+    """Обновляет графики на основе выбранного метода генерации данных."""
     if method == 'process' and not data_queue.empty():
         data = data_queue.get()
-    elif method == 'thread':
-        if data.empty:
-            return {}, {}, {}
+    elif method == 'thread' and not data_queue.empty():
+        data = data_queue.get()
     elif method == 'async':
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        data = loop.run_until_complete(generate_data_async())
+        data = loop.run_until_complete(async_data_generator.generate_data())
+    else:
+        return {}, {}, {}
 
-    pie_fig = px.pie(data, values='Income', names='Category', title='Income Distribution by Category')
-    line_fig = px.line(data, x=data['Category'], y='Expenses', title='Monthly Expenses')
-    bar_fig = px.bar(data, x='Category', y='Purchases', title='Number of Purchases by Category')
+    pie_fig = px.pie(data, values='Rate', names='Currency', title='Currency Rate Distribution')
+    line_fig = px.line(data, x='Currency', y='Rate', title='Currency Rates Over Time')
+    bar_fig = px.bar(data, x='Currency', y='Change', title='Currency Rate Changes')
 
     return pie_fig, line_fig, bar_fig
+
 
 app.layout = html.Div([
     dcc.Graph(id='pie-chart'),
@@ -77,12 +94,14 @@ app.layout = html.Div([
     html.Div(id='output-method')
 ])
 
+
 @app.callback(
     Output('output-method', 'children'),
     Input('submit-button', 'n_clicks'),
     Input('input-method', 'value')
 )
 def run_method(n_clicks, method):
+    """Запускает выбранный метод генерации данных."""
     if n_clicks > 0:
         if method == 'process':
             data_process = Process(target=generate_data_process, args=(data_queue,))

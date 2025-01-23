@@ -5,20 +5,38 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 
+class CurrencyDataGenerator:
+    def __init__(self):
+        self.data = pd.DataFrame(columns=['Currency', 'Rate'])
+
+    def generate_data(self):
+        """Генерирует случайные курсы валют каждую секунду."""
+        while True:
+            time.sleep(2)
+            self.data = pd.DataFrame({
+                'Currency': ['USD', 'EUR', 'GBP', 'JPY'],
+                'Rate': np.random.uniform(50, 150, size=4)  # Генерация случайных курсов валют
+            })
+
 app = Dash(__name__)
+currency_data_generator = CurrencyDataGenerator()
 
-data = pd.DataFrame(columns=['Category', 'Income', 'Expenses', 'Purchases'])
 
-def generate_data():
-    global data
-    while True:
-        time.sleep(2)
-        data = pd.DataFrame({
-            'Category': ['Food', 'Transport', 'Entertainment', 'Utilities'],
-            'Income': (1000, 5000, 2750, 4500),
-            'Expenses': np.random.randint(200, 1000, size=4),
-            'Purchases': np.random.randint(1, 20, size=4)
-        })
+data_thread = threading.Thread(target=currency_data_generator.generate_data)
+data_thread.daemon = True
+data_thread.start()
+
+def create_pie_chart(data):
+    """Создает круговую диаграмму на основе данных."""
+    return px.pie(data, values='Rate', names='Currency', title='Currency Rate Distribution')
+
+def create_line_chart(data):
+    """Создает линейный график на основе данных."""
+    return px.line(data, x='Currency', y='Rate', title='Currency Rates Over Time')
+
+def create_bar_chart(data):
+    """Создает столбчатую диаграмму на основе данных."""
+    return px.bar(data, x='Currency', y='Rate', title='Currency Rates')
 
 @app.callback(
     [Output('pie-chart', 'figure'),
@@ -27,13 +45,14 @@ def generate_data():
     [Input('interval-component', 'n_intervals')]
 )
 def update_graph(n):
-    global data
+    """Обновляет графики при каждом интервале."""
+    data = currency_data_generator.data
     if data.empty:
         return {}, {}, {}
 
-    pie_fig = px.pie(data, values='Income', names='Category', title='Income Distribution by Category')
-    line_fig = px.line(data, x=data['Category'], y=data['Expenses'], title='Monthly Expenses')
-    bar_fig = px.bar(data, x='Category', y='Purchases', title='Number of Purchases by Category')
+    pie_fig = create_pie_chart(data)
+    line_fig = create_line_chart(data)
+    bar_fig = create_bar_chart(data)
 
     return pie_fig, line_fig, bar_fig
 
@@ -44,6 +63,5 @@ app.layout = html.Div([
     dcc.Interval(id='interval-component', interval=2000, n_intervals=0)
 ])
 
-if __name__ == '__main__':
-    threading.Thread(target=generate_data, daemon=True).start()
-    app.run_server(debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
